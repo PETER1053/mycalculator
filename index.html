@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Array Display Calculator - Peter</title>
+    <title>Simple Calculator</title>
     <style>
-        /* Previous CSS styles remain the same */
         body {
             display: flex;
             justify-content: center;
@@ -21,24 +20,33 @@
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 0 15px rgba(0,0,0,0.3);
+            width: 300px;
         }
 
         #display {
             width: 100%;
-            height: 60px;
+            height: 80px;
             margin-bottom: 10px;
             background-color: #fff;
-            border: none;
             border-radius: 5px;
-            font-size: 18px;
-            text-align: left;
+            font-size: 24px;
+            text-align: right;
             padding: 10px;
             box-sizing: border-box;
-            white-space: nowrap;
-            overflow-x: auto;
+            overflow: hidden;
         }
 
-        /* Rest of the CSS remains the same */
+        .calculation {
+            font-size: 18px;
+            color: #666;
+            min-height: 25px;
+        }
+
+        .result {
+            font-size: 24px;
+            color: #333;
+        }
+
         .buttons {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -88,7 +96,10 @@
 </head>
 <body>
     <div class="calculator">
-        <div id="display">[]</div>
+        <div id="display">
+            <div class="calculation"></div>
+            <div class="result">0</div>
+        </div>
         <div class="buttons">
             <button class="power" id="powerBtn">ON/OFF</button>
             <button class="special" id="clear">C</button>
@@ -116,10 +127,10 @@
         let firstOperand = null;
         let operator = null;
         let calculatorOn = false;
-        let calculationHistory = [];
-        let isNewCalculation = false;
+        let calculationString = '';
 
-        const display = document.getElementById('display');
+        const displayCalculation = document.querySelector('.calculation');
+        const displayResult = document.querySelector('.result');
         const powerBtn = document.getElementById('powerBtn');
         const clearBtn = document.getElementById('clear');
         const numberButtons = document.querySelectorAll('.number');
@@ -127,18 +138,11 @@
         const equalsBtn = document.getElementById('equals');
 
         function updateDisplay() {
-            let displayArray = [...calculationHistory];
-            if (currentNumber !== '0' || displayArray.length === 0) {
-                displayArray.push(currentNumber);
-            }
-            display.textContent = `[${displayArray.join(', ')}]`;
+            displayResult.textContent = currentNumber;
+            displayCalculation.textContent = calculationString;
         }
 
         function inputNumber(number) {
-            if (isNewCalculation) {
-                calculationHistory = [];
-                isNewCalculation = false;
-            }
             if (currentNumber === '0' && number !== '.') {
                 currentNumber = number;
             } else {
@@ -149,22 +153,8 @@
 
         function handleOperator(nextOperator) {
             if (calculatorOn) {
-                if (isNewCalculation) {
-                    calculationHistory = [currentNumber];
-                    isNewCalculation = false;
-                } else {
-                    calculationHistory.push(currentNumber);
-                }
-                calculationHistory.push(nextOperator);
-                
-                if (operator) {
-                    const result = calculate();
-                    currentNumber = String(result);
-                    firstOperand = result;
-                } else {
-                    firstOperand = parseFloat(currentNumber);
-                }
-                
+                calculationString += currentNumber + ' ' + nextOperator + ' ';
+                firstOperand = parseFloat(currentNumber);
                 operator = nextOperator;
                 currentNumber = '0';
                 updateDisplay();
@@ -172,60 +162,63 @@
         }
 
         function calculate() {
-            const secondOperand = parseFloat(currentNumber);
-            let result;
-            
-            switch(operator) {
-                case '+':
-                    result = firstOperand + secondOperand;
-                    break;
-                case '-':
-                    result = firstOperand - secondOperand;
-                    break;
-                case '*':
-                    result = firstOperand * secondOperand;
-                    break;
-                case '/':
-                    result = secondOperand !== 0 ? firstOperand / secondOperand : NaN;
-                    break;
+            if (operator && firstOperand !== null) {
+                const secondOperand = parseFloat(currentNumber);
+                let result;
+                
+                switch(operator) {
+                    case '+':
+                        result = firstOperand + secondOperand;
+                        break;
+                    case '-':
+                        result = firstOperand - secondOperand;
+                        break;
+                    case '*':
+                        result = firstOperand * secondOperand;
+                        break;
+                    case '/':
+                        result = secondOperand !== 0 ? firstOperand / secondOperand : NaN;
+                        break;
+                }
+
+                if (isNaN(result)) {
+                    alert("Invalid operation!");
+                    clearCalculator();
+                    return;
+                }
+
+                calculationString += currentNumber + ' = ';
+                currentNumber = result.toString();
+                updateDisplay();
+                calculationString = '';
+                firstOperand = null;
+                operator = null;
             }
-            
-            if (isNaN(result)) {
-                alert("Invalid operation!");
-                return 0;
-            }
-            return result;
         }
 
         function togglePower() {
             calculatorOn = !calculatorOn;
-            currentNumber = '0';
-            firstOperand = null;
-            operator = null;
-            calculationHistory = [];
-            isNewCalculation = false;
+            clearCalculator();
             powerBtn.textContent = calculatorOn ? 'OFF' : 'ON';
-            display.style.backgroundColor = calculatorOn ? '#fff' : '#666';
             
             const buttons = document.querySelectorAll('button:not(.power)');
             buttons.forEach(button => {
                 button.disabled = !calculatorOn;
                 button.classList.toggle('disabled', !calculatorOn);
             });
+        }
+
+        function clearCalculator() {
+            currentNumber = '0';
+            calculationString = '';
+            firstOperand = null;
+            operator = null;
             updateDisplay();
         }
 
         // Event Listeners
         powerBtn.addEventListener('click', togglePower);
-
-        clearBtn.addEventListener('click', () => {
-            currentNumber = '0';
-            firstOperand = null;
-            operator = null;
-            calculationHistory = [];
-            isNewCalculation = false;
-            updateDisplay();
-        });
+        clearBtn.addEventListener('click', clearCalculator);
 
         numberButtons.forEach(button => {
             button.addEventListener('click', () => {
@@ -247,14 +240,7 @@
 
         equalsBtn.addEventListener('click', () => {
             if (calculatorOn && operator) {
-                calculationHistory.push(currentNumber);
-                const result = calculate();
-                calculationHistory.push('=', result.toString());
-                currentNumber = String(result);
-                operator = null;
-                firstOperand = null;
-                isNewCalculation = true;
-                updateDisplay();
+                calculate();
             }
         });
     </script>
